@@ -92,7 +92,7 @@
       background-color: #111;
       transform: rotate(-60deg);
       top: -10px;
-      left: 20px;
+      left: 20px; /* Center point: lines use space-between in 40px container with centers at 2,14,26,38 */
       border-radius: 2px;
     }
 
@@ -315,6 +315,8 @@
         }
         
         // Draw diagonal slash
+        // Note: Canvas uses fixed 9px spacing (lines at 0,9,18,27 with centers at 2,11,20,29)
+        // Center point is at 15.5px, different from CSS (20px) due to different spacing methods
         ctx.save();
         ctx.fillStyle = slashColor;
         ctx.translate(xOffset + 15.5, 50);
