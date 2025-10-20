@@ -242,40 +242,23 @@
     }
 
     function copyTally() {
-      // Create a styled HTML representation that will work in Word
-      let copyHTML = '<div style="display: inline-block; font-size: 0;">';
+      // Generate image of tally marks
+      const tallyImageData = drawTallyToCanvas();
       
-      let groups = Math.floor(tallyCount / 5);
-      let remainder = tallyCount % 5;
-
-      for (let i = 0; i < groups; i++) {
-        copyHTML += `
-          <span style="position: relative; display: inline-block; width: 40px; height: 60px; margin-right: 15px; vertical-align: bottom;">
-            <span style="position: absolute; left: 0px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 9px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 18px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 27px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 17px; top: -10px; width: 4px; height: 80px; background-color: ${slashColor}; transform: rotate(-60deg); transform-origin: center; display: inline-block;"></span>
-          </span>`;
-      }
-
-      if (remainder > 0) {
-        copyHTML += '<span style="position: relative; display: inline-block; width: 40px; height: 60px; margin-right: 15px; vertical-align: bottom;">';
-        for (let j = 0; j < remainder; j++) {
-          copyHTML += `<span style="position: absolute; left: ${j * 9}px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>`;
-        }
-        copyHTML += '</span>';
-      }
+      // Create an image element
+      const img = document.createElement('img');
+      img.src = tallyImageData;
+      img.style.display = 'block';
       
-      copyHTML += '</div>';
-
+      // Create a container for the image
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = copyHTML;
+      tempDiv.appendChild(img);
       tempDiv.style.position = 'absolute';
       tempDiv.style.left = '-9999px';
       document.body.appendChild(tempDiv);
 
       try {
+        // Try to copy the image
         const range = document.createRange();
         range.selectNode(tempDiv);
         window.getSelection().removeAllRanges();
@@ -283,7 +266,7 @@
         document.execCommand('copy');
         window.getSelection().removeAllRanges();
         
-        alert('Tally copied to clipboard!');
+        alert('Tally copied to clipboard! You can now paste it into Word or other applications.');
       } catch (err) {
         // Fallback to text copy
         const textArea = document.createElement('textarea');
@@ -294,39 +277,68 @@
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        alert('Tally copied to clipboard!');
+        alert('Tally copied to clipboard as text!');
       }
       
       document.body.removeChild(tempDiv);
     }
 
-    function downloadWord() {
-      // Generate HTML representation for Word with proper styling using spans for better compatibility
-      let wordTallyHTML = '<div style="font-size: 0; line-height: 0;">';
+    function drawTallyToCanvas() {
+      // Create a canvas to draw the tally marks
+      const groups = Math.floor(tallyCount / 5);
+      const remainder = tallyCount % 5;
+      const totalGroups = groups + (remainder > 0 ? 1 : 0);
       
-      let groups = Math.floor(tallyCount / 5);
-      let remainder = tallyCount % 5;
-
+      // Calculate canvas dimensions
+      const groupWidth = 55; // 40px for group + 15px margin
+      const canvasWidth = totalGroups * groupWidth;
+      const canvasHeight = 80;
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const ctx = canvas.getContext('2d');
+      
+      // Set background to white
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
+      let xOffset = 0;
+      
+      // Draw complete groups (5 lines with slash)
       for (let i = 0; i < groups; i++) {
-        wordTallyHTML += `
-          <span style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px; vertical-align: bottom;">
-            <span style="position: absolute; left: 0px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 9px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 18px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 27px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
-            <span style="position: absolute; left: 17px; top: -10px; width: 4px; height: 80px; background-color: ${slashColor}; transform: rotate(-60deg); transform-origin: center; display: inline-block;"></span>
-          </span>`;
-      }
-
-      if (remainder > 0) {
-        wordTallyHTML += '<span style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px; vertical-align: bottom;">';
-        for (let j = 0; j < remainder; j++) {
-          wordTallyHTML += `<span style="position: absolute; left: ${j * 9}px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>`;
+        ctx.fillStyle = lineColor;
+        
+        // Draw 4 vertical lines
+        for (let j = 0; j < 4; j++) {
+          ctx.fillRect(xOffset + j * 9, 10, 4, 60);
         }
-        wordTallyHTML += '</span>';
+        
+        // Draw diagonal slash
+        ctx.save();
+        ctx.fillStyle = slashColor;
+        ctx.translate(xOffset + 20, 50);
+        ctx.rotate(-Math.PI / 3); // -60 degrees
+        ctx.fillRect(-2, -40, 4, 80);
+        ctx.restore();
+        
+        xOffset += groupWidth;
       }
       
-      wordTallyHTML += '</div>';
+      // Draw remaining lines
+      if (remainder > 0) {
+        ctx.fillStyle = lineColor;
+        for (let j = 0; j < remainder; j++) {
+          ctx.fillRect(xOffset + j * 9, 10, 4, 60);
+        }
+      }
+      
+      return canvas.toDataURL('image/png');
+    }
+
+    function downloadWord() {
+      // Generate image of tally marks
+      const tallyImageData = drawTallyToCanvas();
 
       const content =
         `<html xmlns:o='urn:schemas-microsoft-com:office:office' ` +
@@ -336,7 +348,7 @@
         `<style>body { font-family: Arial, sans-serif; padding: 20px; }</style>` +
         `</head><body>` +
         `<h2>Tally Count: ${tallyCount}</h2>` +
-        wordTallyHTML +
+        `<div><img src="${tallyImageData}" alt="Tally marks" style="display: block; margin: 20px 0;"/></div>` +
         `<p style="margin-top: 30px; font-family: monospace; font-size: 16px;">Text representation: ${tallyText}</p>` +
         `</body></html>`;
 
