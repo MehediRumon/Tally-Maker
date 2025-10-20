@@ -125,12 +125,54 @@
       flex: 1;
       margin-top: 0;
     }
+
+    .color-picker-group {
+      margin-top: 15px;
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .color-picker-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .color-picker-item label {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .color-picker-item input[type="color"] {
+      width: 60px;
+      height: 40px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 2px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Tally Maker</h1>
     <input type="number" id="countInput" placeholder="Enter tally count" />
+    
+    <div class="color-picker-group">
+      <div class="color-picker-item">
+        <label for="lineColor">Line Color</label>
+        <input type="color" id="lineColor" value="#111111" />
+      </div>
+      <div class="color-picker-item">
+        <label for="slashColor">Slash Color</label>
+        <input type="color" id="slashColor" value="#111111" />
+      </div>
+    </div>
+
     <button onclick="generateTally()">Create Tally</button>
 
     <div id="tallyPreview" class="tally-container" style="display: none;"></div>
@@ -144,11 +186,17 @@
     let tallyHTML = "";
     let tallyText = "";
     let tallyCount = 0;
+    let lineColor = "#111111";
+    let slashColor = "#111111";
 
     function generateTally() {
       const count = parseInt(document.getElementById("countInput").value);
       const preview = document.getElementById("tallyPreview");
       const actionButtons = document.getElementById("actionButtons");
+      
+      // Get selected colors
+      lineColor = document.getElementById("lineColor").value;
+      slashColor = document.getElementById("slashColor").value;
 
       if (isNaN(count) || count <= 0) {
         preview.style.display = "block";
@@ -167,11 +215,11 @@
       for (let i = 0; i < groups; i++) {
         html += `
           <div class="tally-group">
-            <div class="tally-line"></div>
-            <div class="tally-line"></div>
-            <div class="tally-line"></div>
-            <div class="tally-line"></div>
-            <div class="tally-slash"></div>
+            <div class="tally-line" style="background-color: ${lineColor};"></div>
+            <div class="tally-line" style="background-color: ${lineColor};"></div>
+            <div class="tally-line" style="background-color: ${lineColor};"></div>
+            <div class="tally-line" style="background-color: ${lineColor};"></div>
+            <div class="tally-slash" style="background-color: ${slashColor};"></div>
           </div>`;
         text += "𝍸 ";
       }
@@ -179,7 +227,7 @@
       if (remainder > 0) {
         html += `<div class="tally-group">`;
         for (let j = 0; j < remainder; j++) {
-          html += `<div class="tally-line"></div>`;
+          html += `<div class="tally-line" style="background-color: ${lineColor};"></div>`;
           text += "| ";
         }
         html += `</div>`;
@@ -194,8 +242,35 @@
     }
 
     function copyTally() {
+      // Create a styled HTML representation that will work in Word
+      let copyHTML = '<div style="display: inline-block; font-size: 0;">';
+      
+      let groups = Math.floor(tallyCount / 5);
+      let remainder = tallyCount % 5;
+
+      for (let i = 0; i < groups; i++) {
+        copyHTML += `
+          <span style="position: relative; display: inline-block; width: 40px; height: 60px; margin-right: 15px; vertical-align: bottom;">
+            <span style="position: absolute; left: 0px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 9px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 18px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 27px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 17px; top: -10px; width: 4px; height: 80px; background-color: ${slashColor}; transform: rotate(-60deg); transform-origin: center; display: inline-block;"></span>
+          </span>`;
+      }
+
+      if (remainder > 0) {
+        copyHTML += '<span style="position: relative; display: inline-block; width: 40px; height: 60px; margin-right: 15px; vertical-align: bottom;">';
+        for (let j = 0; j < remainder; j++) {
+          copyHTML += `<span style="position: absolute; left: ${j * 9}px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>`;
+        }
+        copyHTML += '</span>';
+      }
+      
+      copyHTML += '</div>';
+
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = tallyHTML;
+      tempDiv.innerHTML = copyHTML;
       tempDiv.style.position = 'absolute';
       tempDiv.style.left = '-9999px';
       document.body.appendChild(tempDiv);
@@ -226,29 +301,29 @@
     }
 
     function downloadWord() {
-      // Generate HTML representation for Word with proper styling
-      let wordTallyHTML = '<div style="display: flex; flex-wrap: wrap; gap: 15px;">';
+      // Generate HTML representation for Word with proper styling using spans for better compatibility
+      let wordTallyHTML = '<div style="font-size: 0; line-height: 0;">';
       
       let groups = Math.floor(tallyCount / 5);
       let remainder = tallyCount % 5;
 
       for (let i = 0; i < groups; i++) {
         wordTallyHTML += `
-          <div style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px;">
-            <div style="position: absolute; left: 0px; width: 4px; height: 60px; background-color: #111;"></div>
-            <div style="position: absolute; left: 9px; width: 4px; height: 60px; background-color: #111;"></div>
-            <div style="position: absolute; left: 18px; width: 4px; height: 60px; background-color: #111;"></div>
-            <div style="position: absolute; left: 27px; width: 4px; height: 60px; background-color: #111;"></div>
-            <div style="position: absolute; left: 17px; top: -10px; width: 4px; height: 80px; background-color: #111; transform: rotate(-60deg); transform-origin: center;"></div>
-          </div>`;
+          <span style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px; vertical-align: bottom;">
+            <span style="position: absolute; left: 0px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 9px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 18px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 27px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>
+            <span style="position: absolute; left: 17px; top: -10px; width: 4px; height: 80px; background-color: ${slashColor}; transform: rotate(-60deg); transform-origin: center; display: inline-block;"></span>
+          </span>`;
       }
 
       if (remainder > 0) {
-        wordTallyHTML += '<div style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px;">';
+        wordTallyHTML += '<span style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px; vertical-align: bottom;">';
         for (let j = 0; j < remainder; j++) {
-          wordTallyHTML += `<div style="position: absolute; left: ${j * 9}px; width: 4px; height: 60px; background-color: #111;"></div>`;
+          wordTallyHTML += `<span style="position: absolute; left: ${j * 9}px; width: 4px; height: 60px; background-color: ${lineColor}; display: inline-block;"></span>`;
         }
-        wordTallyHTML += '</div>';
+        wordTallyHTML += '</span>';
       }
       
       wordTallyHTML += '</div>';
@@ -262,7 +337,7 @@
         `</head><body>` +
         `<h2>Tally Count: ${tallyCount}</h2>` +
         wordTallyHTML +
-        `<p style="margin-top: 20px; font-family: monospace; font-size: 16px;">Text representation: ${tallyText}</p>` +
+        `<p style="margin-top: 30px; font-family: monospace; font-size: 16px;">Text representation: ${tallyText}</p>` +
         `</body></html>`;
 
       const blob = new Blob(["\ufeff", content], {
