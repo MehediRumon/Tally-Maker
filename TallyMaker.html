@@ -76,6 +76,7 @@
       height: 60px;
       display: flex;
       justify-content: space-between;
+      margin-right: 15px;
     }
 
     .tally-line {
@@ -88,7 +89,7 @@
       position: absolute;
       width: 4px;
       height: 80px;
-      background-color: red;
+      background-color: #111;
       transform: rotate(-60deg);
       top: -10px;
       left: 17px;
@@ -103,6 +104,27 @@
     .download-btn:hover {
       background-color: #047857;
     }
+
+    .copy-btn {
+      background-color: #6366f1;
+      margin-top: 15px;
+      margin-right: 10px;
+    }
+
+    .copy-btn:hover {
+      background-color: #4f46e5;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .button-group button {
+      flex: 1;
+      margin-top: 0;
+    }
   </style>
 </head>
 <body>
@@ -112,25 +134,30 @@
     <button onclick="generateTally()">Create Tally</button>
 
     <div id="tallyPreview" class="tally-container" style="display: none;"></div>
-    <button id="downloadBtn" class="download-btn" style="display: none;" onclick="downloadWord()">Download Word</button>
+    <div class="button-group" id="actionButtons" style="display: none;">
+      <button class="copy-btn" onclick="copyTally()">Copy Tally</button>
+      <button class="download-btn" onclick="downloadWord()">Download Word</button>
+    </div>
   </div>
 
   <script>
     let tallyHTML = "";
     let tallyText = "";
+    let tallyCount = 0;
 
     function generateTally() {
       const count = parseInt(document.getElementById("countInput").value);
       const preview = document.getElementById("tallyPreview");
-      const downloadBtn = document.getElementById("downloadBtn");
+      const actionButtons = document.getElementById("actionButtons");
 
       if (isNaN(count) || count <= 0) {
         preview.style.display = "block";
         preview.innerHTML = "<p>⚠️ Please enter a valid positive number.</p>";
-        downloadBtn.style.display = "none";
+        actionButtons.style.display = "none";
         return;
       }
 
+      tallyCount = count;
       let groups = Math.floor(count / 5);
       let remainder = count % 5;
 
@@ -146,7 +173,7 @@
             <div class="tally-line"></div>
             <div class="tally-slash"></div>
           </div>`;
-        text += "|||| / ";
+        text += "𝍸 ";
       }
 
       if (remainder > 0) {
@@ -160,22 +187,82 @@
 
       preview.style.display = "flex";
       preview.innerHTML = html;
-      downloadBtn.style.display = "inline-block";
+      actionButtons.style.display = "flex";
 
       tallyHTML = html;
       tallyText = text.trim();
     }
 
+    function copyTally() {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = tallyHTML;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+
+      try {
+        const range = document.createRange();
+        range.selectNode(tempDiv);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        window.getSelection().removeAllRanges();
+        
+        alert('Tally copied to clipboard!');
+      } catch (err) {
+        // Fallback to text copy
+        const textArea = document.createElement('textarea');
+        textArea.value = tallyText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Tally copied to clipboard!');
+      }
+      
+      document.body.removeChild(tempDiv);
+    }
+
     function downloadWord() {
-      const count = document.getElementById("countInput").value;
+      // Generate HTML representation for Word with proper styling
+      let wordTallyHTML = '<div style="display: flex; flex-wrap: wrap; gap: 15px;">';
+      
+      let groups = Math.floor(tallyCount / 5);
+      let remainder = tallyCount % 5;
+
+      for (let i = 0; i < groups; i++) {
+        wordTallyHTML += `
+          <div style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px;">
+            <div style="position: absolute; left: 0px; width: 4px; height: 60px; background-color: #111;"></div>
+            <div style="position: absolute; left: 9px; width: 4px; height: 60px; background-color: #111;"></div>
+            <div style="position: absolute; left: 18px; width: 4px; height: 60px; background-color: #111;"></div>
+            <div style="position: absolute; left: 27px; width: 4px; height: 60px; background-color: #111;"></div>
+            <div style="position: absolute; left: 17px; top: -10px; width: 4px; height: 80px; background-color: #111; transform: rotate(-60deg); transform-origin: center;"></div>
+          </div>`;
+      }
+
+      if (remainder > 0) {
+        wordTallyHTML += '<div style="position: relative; width: 40px; height: 60px; display: inline-block; margin-right: 15px;">';
+        for (let j = 0; j < remainder; j++) {
+          wordTallyHTML += `<div style="position: absolute; left: ${j * 9}px; width: 4px; height: 60px; background-color: #111;"></div>`;
+        }
+        wordTallyHTML += '</div>';
+      }
+      
+      wordTallyHTML += '</div>';
 
       const content =
         `<html xmlns:o='urn:schemas-microsoft-com:office:office' ` +
         `xmlns:w='urn:schemas-microsoft-com:office:word' ` +
         `xmlns='http://www.w3.org/TR/REC-html40'>` +
-        `<head><meta charset='utf-8'><title>Tally</title></head><body>` +
-        `<h2>Tally Count: ${count}</h2>` +
-        `<p style="font-family:monospace; font-size:18px;">${tallyText}</p>` +
+        `<head><meta charset='utf-8'><title>Tally</title>` +
+        `<style>body { font-family: Arial, sans-serif; padding: 20px; }</style>` +
+        `</head><body>` +
+        `<h2>Tally Count: ${tallyCount}</h2>` +
+        wordTallyHTML +
+        `<p style="margin-top: 20px; font-family: monospace; font-size: 16px;">Text representation: ${tallyText}</p>` +
         `</body></html>`;
 
       const blob = new Blob(["\ufeff", content], {
@@ -184,10 +271,11 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Tally_${count}.doc`;
+      link.download = `Tally_${tallyCount}.doc`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
